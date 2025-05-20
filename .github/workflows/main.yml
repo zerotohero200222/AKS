@@ -1,22 +1,12 @@
-# This is a basic workflow to help you get started with Actions
-name: CI
+name: Deploy HelloWorld to AKS
 
-env:
-  RESOURCE_GROUP: 'AZ-400'
-  KUBERNETES_VERSION: '1.19.6'
-  AKS_CLUSTER_NAME: 'interviewprepaks92'
-
-# Controls when the action will run.
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  build:
+  terraform:
     runs-on: ubuntu-latest
 
     env:
@@ -24,39 +14,45 @@ jobs:
       ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-        
+
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-    - name: Log in to Azure
-      uses: Azure/login@v1
-      with:
-        client-id: ${{ secrets.ARM_CLIENT_ID }}
-        tenant-id: ${{ secrets.ARM_TENANT_ID }}
-        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      - name: Log in to Azure
+        uses: Azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-    - name: Verify Azure Login
-      run: az account show
+      - name: Verify Azure Login
+        run: az account show
 
-    - name: Azure CLI Action (Create AKS)
-      uses: Azure/cli@1.0.4
-      with:
-        inlineScript: |
-          az group create --name ${{ env.RESOURCE_GROUP }} --location eastus
-          az aks create -g ${{ env.RESOURCE_GROUP }} -n ${{ env.AKS_CLUSTER_NAME }} --kubernetes-version ${{ env.KUBERNETES_VERSION }} --generate-ssh-keys
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.0"
 
-    - name: Set up Kubernetes tools
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'latest'
+      - name: Initialize Terraform
+        run: terraform init
+        working-directory: ./terraform
 
-    - name: Configure Kubernetes context
-      run: az aks get-credentials --resource-group ${{ env.RESOURCE_GROUP }} --name ${{ env.AKS_CLUSTER_NAME }} --admin
+      - name: Apply Terraform (Create Resource Group & AKS Cluster)
+        run: terraform apply -auto-approve
+        working-directory: ./terraform
 
-    - name: Deploy Application 
-      run: |
-        kubectl apply -f k8s/helloworld.yaml
-    - name: Deploy Application
-      run: |
+      - name: Set up Kubernetes tools
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure Kubernetes context
+        run: |
+          RESOURCE_GROUP=$(terraform output resource_group_name)
+          AKS_CLUSTER=$(terraform output aks_cluster_name)
+          az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_CLUSTER --admin
+
+      - name: Deploy Application
+        run: |
           kubectl apply -f k8s/helloworld.yaml
