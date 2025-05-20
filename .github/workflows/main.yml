@@ -32,7 +32,7 @@ jobs:
         run: az login
 
       - name: Configure Kubernetes context
-        run: az aks get-credentials --resource-group RESOURCE_GROUP --name AKS_CLUSTER --admin
+        run: az aks get-credentials --resource-group app-grp --name AKS_CLUSTER --admin
 
       - name: Deploy application
         run: |
