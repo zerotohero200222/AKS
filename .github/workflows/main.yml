@@ -29,7 +29,7 @@ jobs:
           version: 'latest'
 
       - name: Verify Azure Login
-        run: az account show
+        run: az login
 
       - name: Configure Kubernetes context
         run: az aks get-credentials --resource-group RESOURCE_GROUP --name AKS_CLUSTER --admin
