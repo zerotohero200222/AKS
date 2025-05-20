@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
 jobs:
   terraform:
     runs-on: ubuntu-latest
@@ -23,20 +24,34 @@ jobs:
         with:
           terraform_version: "1.5.0"
           
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Apply Terraform (Create Resource Group & AKS Cluster)
+        run: terraform apply -auto-approve
+        working-directory: ./terraform  # Ensure your Terraform scripts are stored here
+
       - name: Set up Kubernetes tools
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
       - name: Verify Azure Login
-        run: az login
+        run: az account show
 
       - name: Configure Kubernetes context
-        run: az aks get-credentials --resource-group app-grp --name AKS_CLUSTER --admin
+        run: |
+          RESOURCE_GROUP=$(terraform output resource_group_name)
+          AKS_CLUSTER=$(terraform output aks_cluster_name)
+          az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_CLUSTER --admin
 
-      - name: Deploy application
+      - name: Deploy Application
         run: |
           kubectl apply -f k8s/helloworld.yaml
-      - name: Deploy application
-        run: |
-          kubectl apply -f k8s/helloworld.yaml  
