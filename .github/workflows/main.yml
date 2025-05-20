@@ -17,8 +17,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
-     
         
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -29,6 +27,9 @@ jobs:
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
+
+      - name: Verify Azure Login
+        run: az account show
 
       - name: Configure Kubernetes context
         run: az aks get-credentials --resource-group RESOURCE_GROUP --name AKS_CLUSTER --admin
