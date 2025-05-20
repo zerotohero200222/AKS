@@ -4,25 +4,28 @@ on:
   push:
     branches:
       - main
-
 jobs:
-  build-and-deploy:
+  terraform:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
 
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+        
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Verify Azure Login
         run: az account show
-
+        
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.0"
+          
       - name: Set up Kubernetes tools
         uses: azure/setup-kubectl@v3
         with:
@@ -31,6 +34,9 @@ jobs:
       - name: Configure Kubernetes context
         run: az aks get-credentials --resource-group RESOURCE_GROUP --name AKS_CLUSTER --admin
 
+      - name: Deploy application
+        run: |
+          kubectl apply -f k8s/helloworld.yaml
       - name: Deploy application
         run: |
           kubectl apply -f k8s/helloworld.yaml  
