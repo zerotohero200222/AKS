@@ -33,4 +33,4 @@ jobs:
 
       - name: Deploy application
         run: |
-          kubectl apply -f k8s/helloworld.yaml
+          kubectl apply -f k8s/helloworld.yaml  
