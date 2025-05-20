@@ -18,8 +18,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Verify Azure Login
-        run: az account show
+     
         
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
